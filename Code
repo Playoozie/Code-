@@ -1,0 +1,143 @@
+#include <Adafruit_NeoPixel.h>
+
+#define BLYNK_PRINT Serial
+#include <ESP8266WiFi.h>
+#include <BlynkSimpleEsp8266.h>
+#include <DHT.h>
+
+char auth[] = "_M39SEhWoxNnFfdgaiCYiUSxY8tWe-VS";
+char ssid[] = "Aor";
+char pass[] = "playooza2547";
+
+#define DHTPIN D1          // D1 
+#define DHTTYPE DHT22 
+#define PIN D8
+#define NUMPIXELS 8
+
+const int analogInPin = A0;
+const int relay2 = D5;
+const int relay4 = D7;
+
+int port = 80;
+int sensorValue = 0;       
+int outputValue = 0;
+
+
+
+   Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
+DHT dht(DHTPIN, DHTTYPE);
+BlynkTimer timer;
+
+void sendSensor()
+{
+  float h = dht.readHumidity();
+  float T = dht.readTemperature(); 
+  if (isnan(h) || isnan(T)) {
+    Serial.println("Failed to read from DHT sensor!");
+    return;
+  }
+  
+  Blynk.virtualWrite(V1, T);
+  Blynk.virtualWrite(V2, h);
+}
+
+void moisture() 
+{
+  int value = analogRead(A0);
+  value = map(value, 0, 1023, 0, 100);
+  Blynk.virtualWrite(V0, value);
+  Serial.println(value);
+}
+ 
+DHT dhtA(5, DHT22);  
+ 
+void setup() 
+{
+  Serial.begin(9600);
+  pinMode(analogInPin, INPUT);
+  pinMode(relay2, OUTPUT);
+  pinMode(PIN, OUTPUT);
+  pinMode(relay4, OUTPUT);
+  
+  Blynk.begin(auth, ssid, pass);              
+  dht.begin();  
+  timer.setInterval(1000L, sendSensor);
+  
+  pixels.begin();
+}
+ 
+void loop() 
+{
+  int delayval = 500;
+  float h = dht.readHumidity();
+  float T = dht.readTemperature();
+  Blynk.run();
+  timer.run();
+  
+  sensorValue = analogRead(analogInPin);
+  Serial.print("sensorValue = ");
+  Serial.println(sensorValue);
+  outputValue = map(sensorValue, 0, 1023, 100, 0);
+
+  Serial.print("Soil Moisture = ");
+  Serial.print(outputValue);
+  Serial.println(" %");
+  
+  moisture();  
+  Serial.print("Humidity: "); 
+  Serial.print(h);
+  Serial.print(" %\t");
+  Serial.print("Temperature: "); 
+  Serial.print(T);
+  Serial.println(" *C");
+  
+    if (h > 95 ) {  
+       
+       digitalWrite(relay2,HIGH);
+    }
+
+    else {
+      
+      digitalWrite(relay2,LOW);
+    }
+    if (T < 28 ) {  
+        digitalWrite(PIN, HIGH);
+        pixels.setPixelColor(1, pixels.Color(255,255,0));
+        pixels.setPixelColor(2, pixels.Color(255,255 ,0));
+        pixels.setPixelColor(3, pixels.Color(255,255,0));
+        pixels.setPixelColor(4, pixels.Color(255,255,0));
+        pixels.setPixelColor(5, pixels.Color(255,255,0));
+        pixels.setPixelColor(6, pixels.Color(255,255,0));
+        pixels.setPixelColor(7, pixels.Color(255,255,0));
+        pixels.setPixelColor(8, pixels.Color(255,255,0));
+        pixels.show();
+        delay(delayval);
+       
+    }
+
+    else {
+        digitalWrite(PIN ,LOW);
+        pixels.setPixelColor(1, pixels.Color(0,0 ,0));
+        pixels.setPixelColor(2, pixels.Color(0,0 ,0));
+        pixels.setPixelColor(3, pixels.Color(0,0 ,0));
+        pixels.setPixelColor(4, pixels.Color(0,0 ,0));
+        pixels.setPixelColor(5, pixels.Color(0,0 ,0));
+        pixels.setPixelColor(6, pixels.Color(0,0 ,0));
+        pixels.setPixelColor(7, pixels.Color(0,0 ,0));
+        pixels.setPixelColor(8, pixels.Color(0,0 ,0));
+        pixels.show();
+        delay(delayval);
+      
+    }
+    
+    if (sensorValue >  50 ) {  
+       digitalWrite(relay4, HIGH);
+       
+    }
+
+    else {
+      digitalWrite(relay4, LOW);
+      
+    }
+    delay(5000);
+}
